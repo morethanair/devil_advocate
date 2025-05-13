@@ -68,6 +68,10 @@ if "current_turn" not in st.session_state:
     st.session_state.current_turn = "user" # 시작은 사용자 턴
 if "meeting_summary" not in st.session_state:
     st.session_state.meeting_summary = None # 요약 내용 저장
+if "meeting_log_markdown_content" not in st.session_state:
+    st.session_state.meeting_log_markdown_content = None
+if "show_copyable_log" not in st.session_state:
+    st.session_state.show_copyable_log = False
 
 # --- 핵심 로직 함수 ---
 
@@ -116,24 +120,40 @@ def reset_meeting():
     st.session_state.is_meeting_started = False
     st.session_state.chat_history = []
     st.session_state.current_turn = "user"
+    st.session_state.meeting_summary = None # 요약 내용도 초기화
+    st.session_state.meeting_log_markdown_content = None # 생성된 로그 내용 초기화
+    st.session_state.show_copyable_log = False # 복사 영역 숨김
 
 def save_meeting_log():
-    """현재 회의 로그를 JSON 파일로 저장합니다."""
+    """현재 회의 로그를 Markdown 파일로 저장하고, 세션 상태에 복사 가능한 형태로 저장합니다."""
     if not st.session_state.chat_history:
         st.warning("저장할 회의 로그가 없습니다.")
         return None
     try:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"meeting_log_{timestamp}.json"
-        log_data = {
-            "topic": st.session_state.meeting_topic,
-            "user_name": st.session_state.user_name,
-            "timestamp": timestamp,
-            "chat_history": st.session_state.chat_history
-        }
+        filename = f"meeting_log_{timestamp}.md"
+
+        markdown_content = f"# 회의 로그 ({timestamp})\n\n"
+        markdown_content += f"**주제:** {st.session_state.meeting_topic}\n"
+        markdown_content += f"**참여자:** {st.session_state.user_name} (사용자), "
+        markdown_content += ", ".join([p['name'] for p in st.session_state.personas]) + "\n\n"
+        markdown_content += "---\n\n"
+
+        for message in st.session_state.chat_history:
+            role = message.get("role", "unknown")
+            content = message.get("content", "").strip()
+            if role == "system":
+                markdown_content += f"*({content})*\n\n"
+            else:
+                display_role = "사용자" if role == st.session_state.user_name else role
+                markdown_content += f"**{display_role}:** {content}\n\n"
+
         with open(filename, "w", encoding="utf-8") as f:
-            json.dump(log_data, f, ensure_ascii=False, indent=2)
-        st.success(f"회의 로그가 {filename} 에 저장되었습니다.")
+            f.write(markdown_content)
+
+        st.session_state.meeting_log_markdown_content = markdown_content
+        st.session_state.show_copyable_log = True
+        st.success(f"회의 로그가 {filename} 에 저장되었고, 메인 화면에서 복사할 수 있습니다.")
         return filename
     except Exception as e:
         st.error(f"로그 저장 실패: {e}")
@@ -415,6 +435,21 @@ elif st.session_state.is_meeting_started:
     if user_input:
         handle_user_message(user_input)
         st.rerun() # 사용자 메시지 입력 후 즉시 UI 업데이트 및 페르소나 턴 준비
+
+    # 회의 로그 복사 영역 (로그 저장 버튼 클릭 시 표시)
+    if st.session_state.get("show_copyable_log") and st.session_state.get("meeting_log_markdown_content"):
+        st.divider() # 구분선
+        st.subheader("회의 로그 (복사 가능)")
+        st.text_area(
+            "아래 내용을 복사하세요:",
+            value=st.session_state.meeting_log_markdown_content,
+            height=300,
+            key="copyable_log_area"
+        )
+        if st.button("로그 복사 영역 숨기기", key="hide_log_button"):
+            st.session_state.show_copyable_log = False
+            # 내용을 지울 필요는 없음, 다시 '로그 저장' 누르면 갱신됨
+            st.rerun()
 
 else:
     st.info("회의를 시작하려면 사이드바에서 주제를 입력하고 '회의 시작' 버튼을 누르세요.")
