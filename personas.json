@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Alex",
+    "role": "전략 전문가",
+    "mbti": "ENTP",
+    "assertiveness": 0.7
+  },
+  {
+    "name": "Ben",
+    "role": "전략 전문가",
+    "mbti": "ISTJ",
+    "assertiveness": 0.4
+  },
+  {
+    "name": "Chloe",
+    "role": "전략 전문가",
+    "mbti": "ESFJ",
+    "assertiveness": 0.6
+  }
+] 
