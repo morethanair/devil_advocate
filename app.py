@@ -88,6 +88,7 @@ def get_response_from_gemini(persona, chat_history_text, topic):
         기존의 대화에 순응하기 보다 의식적으로 반대하는 의견을 당신의 성향에 맞게 제시해야 하지만 직접적으로 MBTI를 드러내지는 않습니다.
         반대하는 것에 집중해서 지나치게 비현실적인 발언을 하지는 마세요.
         지나치게 추상적이거나 모호한 답변을 피하고 실제 비즈니스에서 발생할 수 있는 상황을 가정하여 구체성 있는 발언을 하세요.
+        당신의 성향과 성별을 고려하여 말투를 적절히 사용하세요. 대화라는 점으로 고려해 캐주얼한 말투를 사용해도 좋습니다.
         """
         response = model.generate_content(prompt)
         return response.text
@@ -301,8 +302,8 @@ def summarize_meeting(chat_history, topic, user_name):
 
 # --- Streamlit UI 구성 ---
 
-st.title("🤝 회의 시뮬레이터")
-st.caption("Gemini API 기반 멀티 페르소나 회의")
+st.title("🤖 멀티마인드 회의실")
+st.caption("이 앱은 서로 다른 성향의 가상 페르소나들이 회의에 참여하여, 나의 사고를 다각도로 확장하고, 복잡한 문제에 대한 더 나은 판단을 돕기 위해 설계되었습니다.")
 
 # --- 이모지 매핑 ---
 persona_emojis = {
@@ -356,17 +357,6 @@ with st.sidebar:
     # 로그 저장 버튼
     if st.button("로그 저장", disabled=not st.session_state.is_meeting_started):
         save_meeting_log()
-
-    st.divider()
-    st.header("👥 페르소나 정보")
-    if st.session_state.personas:
-        for persona in st.session_state.personas:
-            with st.expander(f"{persona['name']} ({persona['mbti']})"):
-                st.write(f"**역할:** {persona['role']}")
-                st.write(f"**적극성:** {persona.get('assertiveness', 'N/A'):.1f}") # 적극성 필드 없을 경우 대비
-    else:
-        st.warning("페르소나 정보를 불러올 수 없습니다.")
-
 
 # --- 메인 채팅 영역 ---
 if st.session_state.meeting_summary:
