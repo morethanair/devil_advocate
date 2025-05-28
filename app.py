@@ -89,8 +89,8 @@ def get_response_from_gemini(persona, chat_history_text, topic):
         {chat_history_text}
         --- 대화 끝 ---
         이제 당신의 입장에서 회의 주제에 대해 간결하게 1~3 문장으로 발언해주세요.
-        기존의 대화에 순응하기 보다 의식적으로 반대하는 의견을 당신의 성향에 맞게 제시해야 하지만 직접적으로 MBTI를 드러내지는 않습니다.
-        반대하는 것에 집중해서 지나치게 비현실적인 발언을 하지는 마세요.
+        기존의 대화에 순응하기 보다 의식적으로 반대하는 의견을 제시하지만, 완벽하게 타당한 의견에 대해서는 반대를 멈추세요.
+        당신의 성향에 일치하는 개념을 제시하고 대화하지만, 직접적으로 MBTI를 드러내지는 않습니다.
         지나치게 추상적이거나 모호한 답변을 피하고 실제 비즈니스에서 발생할 수 있는 상황을 가정하여 구체성 있는 발언을 하세요.
         당신의 성향과 성별을 고려하여 말투를 적절히 사용하세요. 대화라는 점으로 고려해 캐주얼한 말투를 사용해도 좋습니다.
         """
@@ -290,7 +290,7 @@ def summarize_meeting(chat_history, topic, user_name):
             history_text += f"{display_role}: {content}\\n"
 
     prompt = f"""
-    다음은 \'{topic}\'에 대한 회의 기록입니다.
+    다음은 '{topic}'에 대한 회의 기록입니다.
 
     --- 회의 기록 시작 ---
     {history_text}
@@ -391,7 +391,7 @@ if st.session_state.meeting_summary:
         file_name=f"meeting_summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",
         mime="text/markdown"
     )
-    st.info("새로운 회의를 시작하려면 사이드바에서 \'회의 초기화\'를 누르세요.")
+    st.info("새로운 회의를 시작하려면 사이드바에서 '회의 초기화'를 누르세요.")
 
 elif st.session_state.is_meeting_started:
     st.info(f"현재 회의 주제: **{st.session_state.meeting_topic}**")
@@ -457,3 +457,4 @@ else:
 # --- .env 파일 안내 ---
 if not api_key:
     st.warning("'.env' 파일을 생성하고 GOOGLE_API_KEY='당신의_API_키' 형식으로 키를 추가해야 합니다.")
+
