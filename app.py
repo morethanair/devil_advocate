@@ -296,7 +296,7 @@ def summarize_meeting(chat_history, topic, user_name):
     {history_text}
     --- 회의 기록 끝 ---
 
-    위 회의 기록을 바탕으로 다음 형식에 맞춰 회의 결과를 요약해주세요. 각 항목에 해당하는 내용이 명확하지 않으면 "해당 사항 없음" 또는 "명확한 결론/항목 없음" 등으로 표시해주세요.
+    위 회의 기록을 바탕으로 다음 형식에 맞춰 회의를 평가해주세요
 
     # Agenda
     - (회의 주제를 명확히 기술)
@@ -304,11 +304,8 @@ def summarize_meeting(chat_history, topic, user_name):
     # Discussion
     - (주요 논의 사항들을 간결하게 요약)
 
-    # Decision Needed
-    - (논의 내용 중 추가 결정이 필요한 사항들을 명기)
-
-    # Action Item
-    - (회의 결과 도출된 구체적인 실행 항목들을 명기, 담당자나 기한이 있다면 포함)
+    # Feedback
+    - (회의 결과와 논의 방식에 대해 목표달성과 효율성 관점에서 평가하고 개선 사항을 제시)
 
     결과는 마크다운 형식으로 작성해주세요.
     """
@@ -333,128 +330,4 @@ persona_emojis = {
 }
 user_emoji = "🧑‍💻" # 사용자
 
-# --- 사이드바 ---
-with st.sidebar:
-    st.header("⚙️ 설정")
-
-    # 사용자 이름 설정
-    new_user_name = st.text_input("사용자 이름", value=st.session_state.user_name)
-    if new_user_name != st.session_state.user_name:
-        st.session_state.user_name = new_user_name
-        st.rerun() # 이름 변경 시 즉시 반영
-
-    st.divider()
-
-    # 회의 주제 입력
-    topic_input = st.text_input(
-        "회의 주제 설정",
-        placeholder="예: 신규 프로젝트 A의 시장 진출 전략",
-        disabled=st.session_state.is_meeting_started # 회의 중에는 비활성화
-    )
-
-    # 회의 시작 버튼
-    if st.button("회의 시작", disabled=st.session_state.is_meeting_started or not topic_input):
-        start_meeting(topic_input)
-        st.rerun() # 회의 시작 후 즉시 UI 업데이트
-
-    st.divider()
-    st.header("회의 제어")
-
-    # 회의 종료 버튼 추가
-    if st.button("회의 종료", disabled=not st.session_state.is_meeting_started):
-        summary = summarize_meeting(st.session_state.chat_history, st.session_state.meeting_topic, st.session_state.user_name)
-        st.session_state.meeting_summary = summary
-        st.session_state.is_meeting_started = False # 회의 상태 종료
-        st.session_state.current_turn = "user" # 턴 초기화
-        st.rerun() # 상태 변경 후 즉시 UI 업데이트
-
-    # 회의 초기화 버튼 (요약도 초기화)
-    if st.button("회의 초기화"): # 항상 활성화 또는 조건부 활성화 유지 가능
-        reset_meeting()
-        st.session_state.meeting_summary = None # 요약 내용도 초기화
-        st.rerun()
-
-    # 로그 저장 버튼
-    if st.button("로그 저장", disabled=not st.session_state.is_meeting_started):
-        save_meeting_log()
-
-# --- 메인 채팅 영역 ---
-if st.session_state.meeting_summary:
-    # 회의 종료 후 요약 표시
-    st.header("📄 회의 요약")
-    st.markdown(st.session_state.meeting_summary)
-
-    # 요약 다운로드 버튼
-    st.download_button(
-        label="요약 다운로드 (.md)",
-        data=st.session_state.meeting_summary,
-        file_name=f"meeting_summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",
-        mime="text/markdown"
-    )
-    st.info("새로운 회의를 시작하려면 사이드바에서 '회의 초기화'를 누르세요.")
-
-elif st.session_state.is_meeting_started:
-    st.info(f"현재 회의 주제: **{st.session_state.meeting_topic}**")
-
-    # 채팅 기록 표시
-    chat_container = st.container()
-    with chat_container:
-        for message in st.session_state.chat_history:
-            role = message.get("role", "unknown")
-            content = message.get("content", "")
-            if role == "system":
-                st.info(content)
-            elif role == st.session_state.user_name:
-                 # 사용자 메시지에 이름과 이모지 적용
-                 with st.chat_message(name=st.session_state.user_name, avatar=user_emoji):
-                    st.markdown(content)
-            else: # 페르소나
-                # --- 디버깅 라인 (주석 처리) ---
-                # st.write(f"DEBUG: Role='{role}', Avatar='{persona_emojis.get(role, '🤖')}'") # 역할과 아바타 확인
-                # --- 디버깅 라인 끝 ---
-
-                avatar_emoji = persona_emojis.get(role, "🤖")
-                # 이름과 내용을 함께 표시
-                display_content = f"**{role}:** {content}"
-                # name 파라미터는 유지하되, 마크다운 내용에 이름을 명시적으로 추가
-                with st.chat_message(name=role, avatar=avatar_emoji):
-                     st.markdown(display_content)
-
-    # 페르소나 턴 처리 (스크립트 실행 시 체크)
-    if st.session_state.current_turn == "persona":
-        generate_persona_responses()
-        st.rerun() # 페르소나 응답 후 UI 즉시 업데이트
-
-    # 사용자 입력 영역 (사용자 턴일 때만 활성화)
-    user_input = st.chat_input(
-        "메시지를 입력하세요...",
-        key="chat_input",
-        disabled=st.session_state.current_turn != "user" or not st.session_state.is_meeting_started
-    )
-
-    if user_input:
-        handle_user_message(user_input)
-        st.rerun() # 사용자 메시지 입력 후 즉시 UI 업데이트 및 페르소나 턴 준비
-
-    # 회의 로그 복사 영역 (로그 저장 버튼 클릭 시 표시)
-    if st.session_state.get("show_copyable_log") and st.session_state.get("meeting_log_markdown_content"):
-        st.divider() # 구분선
-        st.subheader("회의 로그 (복사 가능)")
-        st.text_area(
-            "아래 내용을 복사하세요:",
-            value=st.session_state.meeting_log_markdown_content,
-            height=300,
-            key="copyable_log_area"
-        )
-        if st.button("로그 복사 영역 숨기기", key="hide_log_button"):
-            st.session_state.show_copyable_log = False
-            # 내용을 지울 필요는 없음, 다시 '로그 저장' 누르면 갱신됨
-            st.rerun()
-
-else:
-    st.info("회의를 시작하려면 사이드바에서 주제를 입력하고 '회의 시작' 버튼을 누르세요.")
-
-# --- .env 파일 안내 ---
-if not api_key:
-    st.warning("'.env' 파일을 생성하고 GOOGLE_API_KEY='당신의_API_키' 형식으로 키를 추가해야 합니다.")
-
+# --- 이하 생략 ---
