@@ -330,4 +330,40 @@ persona_emojis = {
 }
 user_emoji = "🧑‍💻" # 사용자
 
-# --- 이하 생략 ---
+# --- 메인 인터페이스 구성 ---
+with st.form("meeting_form"):
+    user_name = st.text_input("당신의 이름을 입력하세요", value=st.session_state.user_name)
+    topic = st.text_input("회의 주제를 입력하세요", value=st.session_state.meeting_topic)
+    submitted = st.form_submit_button("회의 시작")
+
+    if submitted and topic.strip():
+        st.session_state.user_name = user_name
+        start_meeting(topic)
+
+if st.session_state.is_meeting_started:
+    st.subheader(f"주제: {st.session_state.meeting_topic}")
+    user_input = st.text_input("당신의 발언", key="user_input_text")
+    if st.button("말하기"):
+        handle_user_message(user_input)
+        generate_persona_responses()
+
+    st.markdown("---")
+    st.markdown("### 💬 대화 기록")
+    for msg in st.session_state.chat_history:
+        emoji = user_emoji if msg["role"] == st.session_state.user_name else persona_emojis.get(msg["role"], "🧠")
+        st.markdown(f"{emoji} **{msg['role']}**: {msg['content']}")
+
+    if st.button("회의 요약 요청"):
+        summary = summarize_meeting(st.session_state.chat_history, st.session_state.meeting_topic, st.session_state.user_name)
+        st.session_state.meeting_summary = summary
+
+    if st.session_state.meeting_summary:
+        st.markdown("### 📋 회의 요약")
+        st.markdown(st.session_state.meeting_summary)
+
+    if st.button("회의 로그 저장"):
+        save_meeting_log()
+
+    if st.session_state.show_copyable_log:
+        st.markdown("### 📁 복사 가능한 회의 로그")
+        st.code(st.session_state.meeting_log_markdown_content or "")
